@@ -28,7 +28,7 @@
 ## Де це закладено в рев'юер
 
 - **Інструмент і модель:** Agentic IDE (Antigravity), протестовано на двох моделях: **Gemini 3.8 Flash (High)** та **Gemini 4 Argon (Medium)** із залученням мультилінзового комітету на базі скілів Matt Pocock (`code-review`) та BMAD (`bmad-code-review`).
-- **Файл конфігу / промпта / команди:** [`review/prompt.md`](file:///c:/Users/Haspe/Documents/antigravity/charming-franklin/2026-udc-10-code-review-hw/review/prompt.md).
+- **Файл конфігу / промпта / команди:** [`review/prompt.md`](../review/prompt.md).
 - **Як запускається рев'ю одного PR:**
   - Кожен PR запускається в **окремій чистій ізольованій сесії субагента**.
   - На вхід передаються лише файли цього PR: опис `review-queue/pr-N/PR.md`, диференціал `review-queue/pr-N/change.diff` та базовий стан `app/src/` і `app/test/`.
