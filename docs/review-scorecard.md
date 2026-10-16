@@ -29,7 +29,7 @@
 
 Під час аналізу результатів Прогону 1 на моделі **Gemini 4 Argon** виявилася єдина хибна тривога (FP) у **PR-1**: модель кваліфікувала як *Blocking Issue* (за Правилами 1, 9, 10) те, що в JSDoc та `PR.md` згадано «для персоналу / for the staff UI», тоді як `listLoansPage` делегує вибірку функції `listLoans(db, user)`, яка дозволяє виклик і звичайним читачам (`member`), повертаючи лише їхні власні позики.
 
-Щоб усунути цей **клас хибних спрацьовувань** без підгонки під конкретний PR, ми внесли узагальнені зміни до [`docs/review-standard.md`](file:///c:/Users/Haspe/Documents/antigravity/charming-franklin/2026-udc-10-code-review-hw/docs/review-standard.md) та [`review/prompt.md`](file:///c:/Users/Haspe/Documents/antigravity/charming-franklin/2026-udc-10-code-review-hw/review/prompt.md):
+Щоб усунути цей **клас хибних спрацьовувань** без підгонки під конкретний PR, ми внесли узагальнені зміни до [`docs/review-standard.md`](review-standard.md) та [`review/prompt.md`](../review/prompt.md):
 1. **Узагальнене правило делегування авторизації (Class: Safe Authorization Delegation):**
    > Якщо нова функція-обгортка (наприклад, пагінація чи фільтрація) делегує отримання даних існуючій функції того самого модуля, яка вже безпечно розмежовує записи за роллю користувача (`isStaff`), це відповідає Правилу 1. Розбіжність між формулюванням у JSDoc/описі про основний UI-сценарій та ширшою підтримкою ролей у базовій функції класифікується як неблокуюча дрібниця (nit), а не блокуючий баг.
 2. **Узагальнення перевірки часових рамок політик (Class: Temporal Policy Enforcement):**
@@ -41,12 +41,12 @@
 
 ## Прогін 2 (Task C) — до / після
 
-Після оновлення `docs/review-standard.md` та `review/prompt.md` ми перезапустили **Gemini 4 Argon** у новій чистій ізольованій сесії на **PR-1** (збережено в [`review-runs/gemini-4-argon/pr-1-after-task-c.md`](file:///c:/Users/Haspe/Documents/antigravity/charming-franklin/2026-udc-10-code-review-hw/review-runs/gemini-4-argon/pr-1-after-task-c.md)):
+Після оновлення `docs/review-standard.md` та `review/prompt.md` ми перезапустили **Gemini 4 Argon** у новій чистій ізольованій сесії на **PR-1** (збережено в [`review-runs/gemini-4-argon/pr-1-after-task-c.md`](../review-runs/gemini-4-argon/pr-1-after-task-c.md)):
 
 | PR | Було (Gemini 4 Argon): знайдено / хибні | Стало (Gemini 4 Argon): знайдено / хибні | Що змінилось |
 |---|---|---|---|
 | **PR-1** | **3 TP / 1 FP** | **3 TP / 0 FP** | Зауваження щодо JSDoc `for the staff UI` та делегування в `listLoans` коректно перемістилося з *Blocking Issues* у *Non-blocking / Nits*. Усі 3 реальні дефекти (`1-D1`, `1-D2`, `1-D3`) та слабкий тест залишилися знайденими. |
-| **Усього по черзі (PR 1–6)** | **TP = 15, FN = 0, FP = 1**<br>Precision = **93.75%**, Recall = **100%** | **TP = 15, FN = 0, FP = 0**<br>Precision = **100%**, Recall = **100%** | Усунено єдину хибну тривогу при збереженні 100% повноти виявлення всіх дефектів. |
+| **Усього по черзі (PR 1–6)** | **TP = 15, FN = 0, FP = 1**<br>Precision = **93.75%**, Recall = **100%** | **Підтверджено для PR-1: 3 TP / 0 FP**<br>(Екстраполяція для PR 1–6: **TP = 15, FN = 0, FP = 0**,<br>Precision = **100%**, Recall = **100%**, оскільки прогін для PR-2–6 не повторювався через відсутність помилок у Прогоні 1) | Усунено єдину хибну тривогу на PR-1 при збереженні 100% повноти виявлення всіх дефектів. |
 
 ---
 

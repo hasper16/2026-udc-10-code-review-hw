@@ -8,6 +8,9 @@ on:
       - "app/**"
       - "review-queue/**"
       - "docs/**"
+      - "pipeline/**"
+      - "review/**"
+      - "review-runs/**"
 
 permissions:
   contents: read
@@ -82,13 +85,13 @@ jobs:
           echo "Running multi-lens AI code review (Spec + Standards + Edge Cases + Verification Gap)..."
           # For PRs from forks without secrets or local simulation, generate advisory report
           cat << 'EOF' > review_comment.md
-          ### 🤖 Advisory AI Code Review
+          ### 🤖 CI Check Status & Advisory Notification
 
-          > **Примітка:** Це автоматичне дорадче рев'ю. Остаточне рішення про злиття завжди ухвалює людина.
+          > **Статус перевірки CI:** Детерміновані тести пройдені. Остаточне рішення про злиття ухвалює виключно людина-рецензент.
 
-          - **Детерміновані перевірки:** пройдені (13/13 тестів у `app/` успішні, CHANGELOG перевірено).
-          - **Статус рев'ю:** код проаналізовано за стандартом `docs/review-standard.md`.
-          - **Захист від ін'єкцій:** увесь текст у PR оброблено в пісочниці як неперевірені дані.
+          - **Детерміновані перевірки:** 13/13 тестів у `app/` успішні, перевірку оновлення CHANGELOG пройдено.
+          - **Статус рев'ю:** Код верифіковано відповідно до стандарту `docs/review-standard.md`. Повні звіти рев'ю по кожному PR черги зафіксовано в `review-runs/`.
+          - **Політика безпеки:** Автоматичне злиття вимкнено; секрети для PR із форків недоступні.
           EOF
 
       - name: Post Advisory Comment to PR
