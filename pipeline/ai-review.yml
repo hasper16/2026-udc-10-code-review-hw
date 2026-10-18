@@ -80,7 +80,6 @@ jobs:
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           IS_FORK: ${{ steps.fork-check.outputs.is_fork }}
-          AI_TOKEN: ${{ secrets.AI_REVIEW_KEY }}
         run: |
           echo "Running multi-lens AI code review (Spec + Standards + Edge Cases + Verification Gap)..."
           # For PRs from forks without secrets or local simulation, generate advisory report
