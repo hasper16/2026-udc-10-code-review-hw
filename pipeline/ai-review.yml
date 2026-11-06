@@ -17,6 +17,11 @@ on:
 permissions:
   contents: read
 
+# Один активний прогін на PR: новий push скасовує попередній — і тести, і AI-рев'ю.
+concurrency:
+  group: pr-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   deterministic-checks:
     name: "1. Deterministic Checks (Required)"
@@ -64,10 +69,6 @@ jobs:
     # скасуванні. Лише для PR із гілок цього ж репо: для форків джоба пропускається,
     # тож секрет AI_REVIEW_KEY до коду з форку не потрапляє взагалі.
     if: ${{ !cancelled() && github.event.pull_request.head.repo.full_name == github.repository }}
-    # Один активний прогін рев'ю на PR: новий push скасовує попередній.
-    concurrency:
-      group: ai-review-${{ github.event.pull_request.number }}
-      cancel-in-progress: true
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
