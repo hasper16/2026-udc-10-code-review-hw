@@ -39,19 +39,23 @@ jobs:
         working-directory: app
         run: npm test
 
-      - name: Verify CHANGELOG updated if src changes
+      # Правило 6 стандарту: детермінована частина — лише допоміжний лінт, який
+      # ПОПЕРЕДЖАЄ. Чи змінено публічний контракт (і чи потрібен запис), вирішує
+      # рев'юер / людина, тому крок не валить джобу.
+      - name: Warn if app/src changed without CHANGELOG
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           SRC_CHANGES=$(git diff --name-only "$BASE_SHA"...HEAD -- 'app/src/*')
           CHANGELOG_CHANGES=$(git diff --name-only "$BASE_SHA"...HEAD -- 'app/CHANGELOG.md')
           if [ -n "$SRC_CHANGES" ] && [ -z "$CHANGELOG_CHANGES" ]; then
-            echo "ERROR: Files in app/src/ were modified, but app/CHANGELOG.md was not updated."
-            echo "Modified src files:"
+            echo "::warning title=CHANGELOG::app/src/ змінено, а app/CHANGELOG.md — ні. Якщо змінено публічний контракт, потрібен запис (Правило 6, рішення за рев'юером)."
+            echo "Змінені файли app/src/:"
             echo "$SRC_CHANGES"
-            exit 1
+          else
+            echo "CHANGELOG check: попереджень немає."
           fi
-          echo "CHANGELOG check passed."
+          exit 0
 
   ai-review:
     name: "2. Advisory AI Code Review"
@@ -94,6 +98,7 @@ jobs:
           MAX_TITLE_BYTES: "500"
           MAX_DIFF_BYTES: "100000"
           MAX_BODY_BYTES: "20000"
+          MAX_BASE_BYTES: "150000"
         run: |
           set -euo pipefail
           IN="$RUNNER_TEMP/ai-review"
@@ -122,6 +127,29 @@ jobs:
           git diff "$BASE_SHA"..."$HEAD_SHA" -- app/ > "$IN/diff_full.patch"
           truncate_with_marker "$IN/diff_full.patch" "$IN/diff.patch" "$MAX_DIFF_BYTES" "diff"
 
+          # Базовий код для контексту (щоб модель бачила, що вже робить наявний код,
+          # напр. делегат, який фільтрує за роллю): спершу базові версії файлів
+          # app/src і app/test, яких торкається диф, потім решта app/src з бази.
+          # Нових файлів у базі немає — вони цілком є в дифі. Ліміт — MAX_BASE_BYTES.
+          : > "$IN/base_files.txt"
+          {
+            git diff --name-only -z "$BASE_SHA"..."$HEAD_SHA" -- app/src app/test
+            git ls-tree -r -z --name-only "$BASE_SHA" -- app/src
+          } | while IFS= read -r -d '' f; do
+            if grep -Fxq -- "$f" "$IN/base_files.txt"; then continue; fi
+            if ! git cat-file -e "$BASE_SHA:$f" 2>/dev/null; then continue; fi
+            printf '%s\n' "$f" >> "$IN/base_files.txt"
+          done
+          : > "$IN/base_context_full.txt"
+          while IFS= read -r f; do
+            {
+              printf '===== %s (base) =====\n' "$f"
+              git show "$BASE_SHA:$f"
+              printf '\n'
+            } >> "$IN/base_context_full.txt"
+          done < "$IN/base_files.txt"
+          truncate_with_marker "$IN/base_context_full.txt" "$IN/base_context.txt" "$MAX_BASE_BYTES" "базовий код"
+
           # Інструкції рев'юера читаються з БАЗОВОГО коміту, щоб PR не міг переписати
           # власного рев'юера. Якщо файлу ще немає в базі — беремо з голови PR і чесно
           # позначаємо це в коментарі.
@@ -139,6 +167,7 @@ jobs:
           done
           cat "$IN/prompt_source.txt"
           echo "diff bytes: $(wc -c < "$IN/diff_full.patch")"
+          echo "base context: $(wc -l < "$IN/base_files.txt") files, $(wc -c < "$IN/base_context_full.txt") bytes"
 
       # Секрет існує ТІЛЬКИ в env цього кроку. Ключ ніде не друкується.
       # Скрипт завжди пише $RUNNER_TEMP/ai-review/review_comment.md (finally).
@@ -182,6 +211,11 @@ jobs:
               "",
               `<<<UNTRUSTED_${tag} kind="diff_app">>>`,
               read("diff.patch"),
+              `<<<END_UNTRUSTED_${tag}>>>`,
+              "",
+              "Базові версії (до PR) змінених файлів app/src і app/test та решти app/src — контекст, щоб звіряти диф із наявним кодом.",
+              `<<<UNTRUSTED_${tag} kind="base_app">>>`,
+              read("base_context.txt"),
               `<<<END_UNTRUSTED_${tag}>>>`,
             ].join("\n");
 
@@ -277,7 +311,7 @@ jobs:
               '',
               `**Детерміновані перевірки (deterministic-checks):** ${icon} \`${det}\``,
               '',
-              'Модель бачила лише диф `app/`; зміни в docs/, review/, pipeline/ перевіряє людина.',
+              'Модель бачила диф `app/` і базові версії змінених файлів `app/src`, `app/test` та решти `app/src` (до 150 КБ); зміни в docs/, review/, pipeline/ перевіряє людина.',
               '',
               '---',
               '',
